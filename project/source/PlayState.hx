@@ -1,5 +1,6 @@
 package;
 
+import flixel.effects.particles.FlxEmitterExt;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.FlxState;
@@ -11,12 +12,8 @@ import flixel.util.FlxSave;
 import Platform;
 
 // TODO:
-//       sound
-//       kill past screen edges
-//
-//       spin (rotate toward velocity)
+//       spin (rotate toward velocity) (blur?)
 //       particles (on death and jump)
-//       add good platforms with bad ones
 //       increase difficulty
 
 /**
@@ -33,6 +30,7 @@ class PlayState extends FlxState  {
   private var _platform_width = 100;
   private var _platform_height = 10;
   private var _spike_chance = 0.3;
+  private var _consecutive_spike_counter = 0;
 
   private var _player:Player;
 
@@ -53,6 +51,9 @@ class PlayState extends FlxState  {
   private var _instructions:FlxText;
 
   private var _danger:FlxSprite;
+  private var _explosion:FlxEmitterExt;
+
+  private var _on_platform_last:Bool;
 
 	/**
 	 * Function that is called up when to state is created to set it up.
@@ -74,6 +75,13 @@ class PlayState extends FlxState  {
     _danger = new FlxSprite(0, FlxG.height - 20);
     _danger.makeGraphic(FlxG.width, 20, 0x44FF0000);
 
+    _explosion = new FlxEmitterExt();
+		_explosion.setRotation(0, 0);
+		_explosion.setMotion(0, 25, 0.2, 360, 200, 1.8);
+		_explosion.makeParticles("assets/images/particle.png", 1200, 0, true, 0);
+		_explosion.setAlpha(1, 1, 0, 0);
+		add(_explosion);
+
     reset();
 
 		super.create();
@@ -82,12 +90,11 @@ class PlayState extends FlxState  {
   private function reset():Void {
     _row_pos = FlxG.height - 2 * (FlxG.height / ROWS);
     _moving = false;
+    _on_platform_last = true;
     Reg.score = 0;
     _score_text.text = "Best: " + Reg.best_score + "\nCurrent: " + Reg.score;
 
     this.remove(_danger);
-
-    this.add(_instructions);
 
     _platforms = new FlxTypedGroup<Platform>();
     this.add(_platforms);
@@ -118,10 +125,14 @@ class PlayState extends FlxState  {
 
     // Keep on top
     this.add(_danger);
+
+    this.add(_instructions);
   }
 
   private function killPlayer():Void {
     //FlxG.log.add("kill player");
+    FlxG.sound.play("assets/sounds/Explosion1.wav");
+    explode(_player.x, _player.y);
     destroyThings();
     reset();
   }
@@ -175,6 +186,8 @@ class PlayState extends FlxState  {
     var player_pos = _player.getScreenXY();
     var dir = new FlxPoint(mouse_pos.x - player_pos.x, mouse_pos.y - player_pos.y);
     if (on_platform) {
+      if (!_on_platform_last)
+        FlxG.sound.play("assets/sounds/land1.wav");
       if (FlxG.mouse.justPressed) {
         if (!_moving) {
           _moving = true;
@@ -182,6 +195,7 @@ class PlayState extends FlxState  {
           this.remove(_instructions);
         }
         _player.jump(dir);
+        FlxG.sound.play("assets/sounds/Jump1.wav");
       }
       var length = Math.sqrt(dir.x * dir.x + dir.y * dir.y);
       dir.x = dir.x / length * _aim_vector_length;
@@ -196,6 +210,8 @@ class PlayState extends FlxState  {
       var end = new FlxPoint(-200, -200);
       _aim_vector.update2(start, end);
     }
+
+    _on_platform_last = on_platform;
 
     var current_pos = _camera_target.y;
     _spawn_counter += current_pos - _last_pos; // current_pos should always be < _last_pos
@@ -220,7 +236,9 @@ class PlayState extends FlxState  {
       }
     });
 
-    if (_player.getScreenXY().y > FlxG.height) {
+    if (player_pos.y > FlxG.height ||
+        player_pos.x < -_player.width * 1.1 ||
+        player_pos.x > FlxG.width + _player.width * 1.1) {
       killPlayer();
       return;
     }
@@ -257,12 +275,27 @@ class PlayState extends FlxState  {
       var x = Math.random() * (max_x - min_x) + min_x;
       var y = Math.random() * (max_y - min_y) + min_y;
       var type = PlatformType.NORMAL;
-      if (Math.random() < _spike_chance) {
+      if (Math.random() < _spike_chance && _consecutive_spike_counter < 3) {
         type = PlatformType.SPIKE;
+        _consecutive_spike_counter++;
+      } else {
+        _consecutive_spike_counter = 0;
       }
       //FlxG.log.add("new platform: " + bucket + " | " + x + ", " + y);
       var p = _platforms.recycle(Platform, [x, y, _platform_width, _platform_height, type]);
       p.setup(x, y, _platform_width, _platform_height, type);
     }
   }
+
+  private function explode(X:Float = 0, Y:Float = 0):Void {
+		if (X == 0 && Y == 0) {
+			X = FlxG.width / 2;
+			Y = FlxG.height / 2;
+		}
+
+    _explosion.x = X;
+    _explosion.y = Y;
+    _explosion.start(true, 0.05, 0, 100, 0.5);
+    _explosion.update();
+	}
 }
