@@ -10,11 +10,13 @@ import flixel.util.FlxPoint;
  */
 class Player extends FlxSprite {
   var JUMP_MULTIPLIER = 2;
+  public var on_platform:Bool;
 
   public function new(X:Float = 0, Y:Float = 0, size:Int, gravity:Int) {
     super(X, Y);
 		this.makeGraphic(size, size);
     this.acceleration.y = gravity;
+    on_platform = false;
   }
 
   public function jump(dir:FlxPoint):Void {
@@ -24,4 +26,15 @@ class Player extends FlxSprite {
     //FlxG.log.add("vel: " + this.velocity);
   }
 
+  override public function update():Void {
+    var speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
+    if (speed > 0 && !on_platform) {
+      var dir = new FlxPoint(this.velocity.x / speed, this.velocity.y / speed);
+      var angle = Math.atan2(dir.y, dir.x);
+      this.set_angle(angle / Math.PI * 180);
+    } else {
+      this.set_angle(0);
+    }
+    super.update();
+  }
 }

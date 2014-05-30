@@ -12,8 +12,6 @@ import flixel.util.FlxSave;
 import Platform;
 
 // TODO:
-//       spin (rotate toward velocity) (blur?)
-//       particles (on death and jump)
 //       increase difficulty
 
 /**
@@ -33,6 +31,7 @@ class PlayState extends FlxState  {
   private var _consecutive_spike_counter = 0;
 
   private var _player:Player;
+  private var _dead:Bool;
 
   private var _platforms:FlxTypedGroup<Platform>;
   private var _row_pos:Float;
@@ -59,7 +58,8 @@ class PlayState extends FlxState  {
 	 * Function that is called up when to state is created to set it up.
 	 */
 	override public function create():Void {
-    FlxG.camera.bgColor = 0xFFC0C0C0;
+    FlxG.camera.useBgAlphaBlending = true;
+    FlxG.camera.bgColor = 0x55C0C0C0;
 
     _score_text = new FlxText(0, 0, 300, "", 12);
     this.add(_score_text);
@@ -88,6 +88,7 @@ class PlayState extends FlxState  {
 	}
 
   private function reset():Void {
+    _dead = false;
     _row_pos = FlxG.height - 2 * (FlxG.height / ROWS);
     _moving = false;
     _on_platform_last = true;
@@ -133,8 +134,12 @@ class PlayState extends FlxState  {
     //FlxG.log.add("kill player");
     FlxG.sound.play("assets/sounds/Explosion1.wav");
     explode(_player.x, _player.y);
-    destroyThings();
-    reset();
+    _dead = true;
+    this.remove(_player);
+    FlxG.camera.shake(0.02, 0.3, function() {
+      destroyThings();
+      reset();
+    });
   }
 
   private function destroyThings():Void {
@@ -164,6 +169,8 @@ class PlayState extends FlxState  {
 	 */
 	override public function update():Void {
 		super.update();
+
+    if (_dead) return;
 
     var on_platform = false;
 
@@ -212,6 +219,7 @@ class PlayState extends FlxState  {
     }
 
     _on_platform_last = on_platform;
+    _player.on_platform = on_platform;
 
     var current_pos = _camera_target.y;
     _spawn_counter += current_pos - _last_pos; // current_pos should always be < _last_pos
