@@ -30,6 +30,7 @@ class Reg
 	 */
 	public static var score:Int = 0;
   public static var best_score:Int = 0;
+  public static var checkpoint:Int = 0;
 	/**
 	 * Generic bucket for storing different FlxSaves.
 	 * Especially useful for setting up multiple save slots.

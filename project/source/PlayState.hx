@@ -11,8 +11,7 @@ import flixel.util.FlxPoint;
 import flixel.util.FlxSave;
 import Platform;
 
-// TODO:
-//       increase difficulty
+// TODO: change score to be best consecutive
 
 /**
  * A FlxState which can be used for the actual gameplay.
@@ -24,10 +23,10 @@ class PlayState extends FlxState  {
   private var PLAYER_SIZE = 40;
   private var PLAYER_GRAVITY = 800;
 
-  private var _speed = -80;
-  private var _platform_width = 100;
+  private var _speed = 80;
+  private var _platform_width = 125;
   private var _platform_height = 10;
-  private var _spike_chance = 0.3;
+  private var _spike_chance = 0.2;
   private var _consecutive_spike_counter = 0;
 
   private var _player:Player;
@@ -48,11 +47,15 @@ class PlayState extends FlxState  {
   private var _game_save:FlxSave;
   private var _score_text:FlxText;
   private var _instructions:FlxText;
+  private var _reset:FlxText;
+  private var _story:FlxText;
 
   private var _danger:FlxSprite;
   private var _explosion:FlxEmitterExt;
 
   private var _on_platform_last:Bool;
+
+  private var _checkpoint_rate = 20;
 
 	/**
 	 * Function that is called up when to state is created to set it up.
@@ -64,6 +67,15 @@ class PlayState extends FlxState  {
     _score_text = new FlxText(0, 0, 300, "", 12);
     this.add(_score_text);
     _instructions = new FlxText(FlxG.width / 2 - 83, FlxG.height / 2, 166, "Click to jump", 20);
+    _instructions.alignment = "center";
+    _reset = new FlxText(FlxG.width / 2 - 93, FlxG.height / 2 + 15 * 2 , 186, "R to reset progress", 15);
+    _reset.alignment = "center";
+    var w = 400;
+    _story = new FlxText(FlxG.width / 2 - w/2, 0, w, "", 15);
+    _story.color = 0xFF808080;
+    _story.alignment = "center";
+    _story.moves = true;
+    this.add(_story);
 
     _aim_vector = new Ray(_aim_vector_color);
     _aim_vector.setThickness(10);
@@ -71,6 +83,7 @@ class PlayState extends FlxState  {
     _game_save = new FlxSave();
     _game_save.bind("save");
     Reg.best_score = _game_save.data.best_score;
+    Reg.checkpoint = _game_save.data.checkpoint;
 
     _danger = new FlxSprite(0, FlxG.height - 20);
     _danger.makeGraphic(FlxG.width, 20, 0x44FF0000);
@@ -92,7 +105,7 @@ class PlayState extends FlxState  {
     _row_pos = FlxG.height - 2 * (FlxG.height / ROWS);
     _moving = false;
     _on_platform_last = true;
-    Reg.score = 0;
+    Reg.score = Reg.checkpoint;
     _score_text.text = "Best: " + Reg.best_score + "\nCurrent: " + Reg.score;
 
     this.remove(_danger);
@@ -128,6 +141,11 @@ class PlayState extends FlxState  {
     this.add(_danger);
 
     this.add(_instructions);
+    this.add(_reset);
+
+    setStory("", FlxG.height);
+    this.remove(_story);
+    this.add(_story);
   }
 
   private function killPlayer():Void {
@@ -150,9 +168,10 @@ class PlayState extends FlxState  {
 
   private function setSpeed(amount:Float):Void {
     for (platform in _platforms) {
-      platform.velocity.y = -amount;
+      platform.velocity.y = amount;
     }
-    _camera_target.velocity.y = amount;
+    _camera_target.velocity.y = -amount;
+    _story.velocity.y = _speed * 0.75;
   }
 
 	/**
@@ -171,6 +190,17 @@ class PlayState extends FlxState  {
 		super.update();
 
     if (_dead) return;
+
+    if (!_moving && FlxG.keys.justPressed.R) {
+      Reg.score = 0;
+      Reg.checkpoint = 0;
+      _game_save.data.checkpoint = Reg.checkpoint;
+      _game_save.data.score = Reg.score;
+      _game_save.flush();
+      _score_text.text = "Best: " + Reg.best_score + "\nCurrent: " + Reg.score;
+    }
+
+    updateProgress();
 
     var on_platform = false;
 
@@ -200,6 +230,7 @@ class PlayState extends FlxState  {
           _moving = true;
           setSpeed(_speed);
           this.remove(_instructions);
+          this.remove(_reset);
         }
         _player.jump(dir);
         FlxG.sound.play("assets/sounds/Jump1.wav");
@@ -283,7 +314,7 @@ class PlayState extends FlxState  {
       var x = Math.random() * (max_x - min_x) + min_x;
       var y = Math.random() * (max_y - min_y) + min_y;
       var type = PlatformType.NORMAL;
-      if (Math.random() < _spike_chance && _consecutive_spike_counter < 3) {
+      if (Math.random() < _spike_chance && _consecutive_spike_counter < 2) {
         type = PlatformType.SPIKE;
         _consecutive_spike_counter++;
       } else {
@@ -306,4 +337,97 @@ class PlayState extends FlxState  {
     _explosion.start(true, 0.05, 0, 100, 0.5);
     _explosion.update();
 	}
+
+  private function setStory(text:String, y:Float) {
+    _story.text = text;
+    _story.y = y;
+  }
+
+  private function updateProgress() {
+    if (Reg.score >= Reg.checkpoint + _checkpoint_rate) {
+        Reg.checkpoint += _checkpoint_rate;
+        _game_save.data.checkpoint = Reg.checkpoint;
+        _game_save.flush();
+    }
+
+    var y = -50;
+    switch (Reg.score) {
+      case 15:
+        setStory("Hey, how's it going?", y);
+      case 30:
+        setStory("Dang! You're doing pretty good.", y);
+      case 50:
+        setStory("Whoa! Don't look down.", y);
+      case 75:
+        setStory("Still can't see the top yet. Better keep going.", y);
+      case 100:
+        setStory("This might take awhile", y);
+      case 130:
+        setStory("How about a thoughtful poem to pass the time", y);
+      case 145:
+        setStory("It’s titled Only Breath and was written by Rumi", y);
+      case 150:
+        setStory("Not Christian or Jew or Muslim,", y);
+      case 165:
+        setStory("not Hindu, Buddhist, sufi, or zen.", y);
+      case 185:
+        setStory("Not any religion or cultural system.", y);
+      case 205:
+        setStory("I am not from the East or the West,", y);
+      case 220:
+        setStory("not out of the ocean or up from the ground,", y);
+      case 235:
+        setStory("not natural or ethereal,", y);
+      case 250:
+        setStory("not composed of elements at all.", y);
+      case 270:
+        setStory("I do not exist,", y);
+      case 285:
+        setStory("am not an entity in this world or the next,", y);
+      case 300:
+        setStory("did not descend from Adam or Eve", y);
+      case 315:
+        setStory("or any origin story.", y);
+      case 335:
+        setStory("My place is placeless,", y);
+      case 350:
+        setStory("a trace of the traceless.", y);
+      case 370:
+        setStory("Neither body or soul.", y);
+      case 390:
+        setStory("I belong to the beloved,", y);
+      case 405:
+        setStory("have seen the two worlds as one", y);
+      case 420:
+        setStory("and that one call to and know,", y);
+      case 435:
+        setStory("first,", y);
+      case 445:
+        setStory("last,", y);
+      case 455:
+        setStory("outer,", y);
+      case 465:
+        setStory("inner,", y);
+      case 480:
+        setStory("only that breath breathing", y);
+      case 500:
+        setStory("human being.", y);
+      case 550:
+        setStory("Well, I’m starting to think there isn’t a top.", y);
+      case 570:
+        setStory("I’ll stop bothering you now", y);
+      case 590:
+        setStory("let you concentrate", y);
+      case 610:
+        setStory("on getting as high as you can", y);
+      case 630:
+        setStory("Maybe there’s something waiting for you up there", y);
+      case 650:
+        setStory("Or maybe not", y);
+      case 670:
+        setStory("Okay, now I’m leaving", y);
+      case 690:
+        setStory("Bye...", y);
+    }
+  }
 }

@@ -11,12 +11,14 @@ import flixel.util.FlxPoint;
 class Player extends FlxSprite {
   var JUMP_MULTIPLIER = 2;
   public var on_platform:Bool;
+  private var _size:Int;
 
   public function new(X:Float = 0, Y:Float = 0, size:Int, gravity:Int) {
     super(X, Y);
 		this.makeGraphic(size, size);
     this.acceleration.y = gravity;
     on_platform = false;
+    _size = size;
   }
 
   public function jump(dir:FlxPoint):Void {
