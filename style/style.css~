@@ -1,0 +1,90 @@
+
+canvas {
+    position: absolute;
+    background-color: black;
+}
+
+div.fb-comments {
+    width: 700px;
+    margin: auto;
+    display: block;
+}
+
+#button {
+    width: 106px;
+    margin: 30px auto;
+}
+
+div#browser {
+    text-align: center;
+}
+
+div#toggle-comments {
+    text-align: center;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    padding: 5px 0px;
+    width: 700px;
+    margin: auto;
+    cursor: pointer;
+}
+
+a#source-button {
+    padding: 5px 10px;
+    border: 1px solid black;
+    border-radius: 5px;
+    text-decoration: none;
+    color: black;
+    background-color: #aaa;
+}
+
+a#source-button:hover {
+    background-color: #888;
+}
+
+a#source-button:visited {
+    color: black;
+}
+
+#feedback {
+    width: 700px;
+    margin: 20px auto;
+    padding: 10px;
+    border: 1px solid black;
+    border-radius: 5px;
+}
+
+#feedback > h1 {
+    text-align: center;
+    text-decoration: underline;
+}
+
+#feedback > h2 {
+    margin-left: 10px;
+}
+
+#feedback > p {
+    margin: 10px;
+}
+
+#feedback ul {
+    margin-left: 40px;
+}
+
+/* #game-frame { */
+/*     margin: auto; */
+/*     width: 800px; */
+/*     height: 600px; */
+
+/*     -webkit-touch-callout: none; */
+/*     -webkit-user-select: none; */
+/*     -khtml-user-select: none; */
+/*     -moz-user-select: none; */
+/*     -ms-user-select: none; */
+/*     user-select: none; */
+/*     outline: none; */
+/* } */
+
+/* #bgd-canvas { */
+/*     background: rgb(109, 194, 255); */
+/* } */
